@@ -1,0 +1,5 @@
+docker exec -it docker_kafka_1 bash
+bash $KAFKA_HOME/bin/kafka-topics.sh --create --topic test --partitions 2 --replication-factor 1 --zookeeper zookeeper:2181
+
+
+spark-submit --name JavaStructuredSessionization --master spark://master:7077 --class JavaStructuredSessionization /tmp/java/spark-stream-1.0-SNAPSHOT.jar
