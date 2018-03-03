@@ -82,18 +82,65 @@
             <version>2.9.9</version>
         </dependency>
 
-
-   <!--
-     // Kryo serializers
-
-        compile group: 'com.esotericsoftware', name : 'kryo' ,version : '4.0.1'
-        compile group: 'de.javakaffee', name : 'kryo-serializers', version : '0.42'
-
-        //other libraries
-        compile group: 'org.apache.commons', name: 'commons-math3', version: '3.6.1'
-        compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.16.20'
-        compile group: 'joda-time', name: 'joda-time', version: '2.9.9'
--->
-
     </dependencies>
+
+    <build>
+
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.1.0</version>
+                <configuration>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                    <!-- MainClass in mainfest make a executable jar -->
+                    <!-- <archive>
+                         <manifest>
+                             <mainClass>com.mkyong.core.utils.App</mainClass>
+                         </manifest>
+                     </archive>-->
+
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+
+            <!-- TODO: shade dependencies inside fat jar -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <relocations>
+                                <relocation>
+                                    <pattern>org.codehaus.plexus.util</pattern>
+                                    <shadedPattern>org.shaded.plexus.util</shadedPattern>
+                                    <excludes>
+                                        <exclude>org.codehaus.plexus.util.xml.Xpp3Dom</exclude>
+                                        <exclude>org.codehaus.plexus.util.xml.pull.*</exclude>
+                                    </excludes>
+                                </relocation>
+                            </relocations>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>
