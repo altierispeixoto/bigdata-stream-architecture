@@ -84,3 +84,4 @@ spark-stream/src/test/
 
 spark-stream/docker/spark/conf/worker/
 /.idea/
+spark-stream/target/
