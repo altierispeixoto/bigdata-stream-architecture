@@ -76,12 +76,17 @@ kafka-stream/target/
 kinesis-stream/src/main/resources/
 kinesis-stream/src/test/
 kinesis-stream/target/
-spark-stream/docker/mysql/
-spark-stream/docker/spark/data/output/
-spark-stream/docker/elasticsearch/data/
-spark-stream/src/main/resources/
-spark-stream/src/test/
+spark-kinesis-stream/docker/mysql/
+spark-kinesis-stream/docker/spark/data/output/
+spark-kinesis-stream/docker/elasticsearch/data/
+spark-kinesis-stream/src/main/resources/
+spark-kinesis-stream/src/test/
 
 spark-stream/docker/spark/conf/worker/
 /.idea/
 spark-stream/target/
+*.iml
+
+spark-kinesis-stream/dependency-reduced-pom.xml
+spark-kinesis-stream/target/
+spark-structured-kafka/target/

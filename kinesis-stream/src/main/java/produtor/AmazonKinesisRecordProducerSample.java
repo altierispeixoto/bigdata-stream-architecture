@@ -95,13 +95,13 @@ public class AmazonKinesisRecordProducerSample {
         System.out.println("Press CTRL-C to stop.");
 
 
-        while (true) {
+       // while (true) {
             long createTime = System.currentTimeMillis();
             PutRecordRequest putRecordRequest = new PutRecordRequest();
             putRecordRequest.setStreamName(myStreamName);
 
 
-            putRecordRequest.setData(ByteBuffer.wrap(String.format("testData-%d", createTime).getBytes(UTF_8)));
+            putRecordRequest.setData(ByteBuffer.wrap(String.format("5;2018-02-27 00:15:00.0;60").getBytes(UTF_8)));
             putRecordRequest.setPartitionKey(String.format("partitionKey-%d", createTime));
 
             PutRecordResult putRecordResult = kinesis.putRecord(putRecordRequest);
@@ -109,7 +109,7 @@ public class AmazonKinesisRecordProducerSample {
                     putRecordRequest.getPartitionKey(),
                     putRecordResult.getShardId(),
                     putRecordResult.getSequenceNumber());
-        }
+     //   }
     }
 
     private static void waitForStreamToBecomeAvailable(String myStreamName) throws InterruptedException {
