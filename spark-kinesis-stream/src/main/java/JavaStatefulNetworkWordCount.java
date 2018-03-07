@@ -1,12 +1,12 @@
 import br.com.ceabs.domain.*;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.services.kinesis.AmazonKinesis;
 import com.amazonaws.services.kinesis.AmazonKinesisClientBuilder;
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.InitialPositionInStream;
 import com.amazonaws.services.kinesis.model.DescribeStreamResult;
 import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.Optional;
 import org.apache.spark.api.java.function.*;
 import org.apache.spark.api.java.function.Function0;
@@ -205,8 +205,7 @@ public class JavaStatefulNetworkWordCount{
        final DStream<TripUpdate> tripFiltered = stateDstream.filter(tripUpdate -> tripUpdate.isExpired()).dstream();
 
         tripFiltered.print();
-        EsSparkStreaming.
-                saveToEs(tripFiltered, "spark/trip");
+        EsSparkStreaming.saveToEs(tripFiltered, "spark/trip");
 
         jssc.checkpoint(checkpointDirectory);
 
@@ -244,7 +243,7 @@ public class JavaStatefulNetworkWordCount{
     private static AmazonKinesis getKinesisClient() {
 
         AmazonKinesisClientBuilder kinesisClient  = AmazonKinesisClientBuilder.standard()
-                .withCredentials(new AWSStaticCredentialsProvider(getCredentials()))
+                .withCredentials(new DefaultAWSCredentialsProviderChain())
                 .withRegion(KINESIS_REGION);
 
 
@@ -255,9 +254,6 @@ public class JavaStatefulNetworkWordCount{
         return client;
     }
 
-    private static BasicAWSCredentials getCredentials(){
-        return new BasicAWSCredentials("AKIAI3OGYWWFN556RXJQ", "alHxj9bx5d7i5ZtJX86mrUO7FhbQI8KfTstMsGa7");
-    }
 
 
     public static  void main(String[] args) throws Exception {
