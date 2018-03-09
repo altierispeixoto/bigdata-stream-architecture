@@ -1,6 +1,4 @@
 import br.com.ceabs.domain.*;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.services.kinesis.AmazonKinesis;
 import com.amazonaws.services.kinesis.AmazonKinesisClientBuilder;
@@ -12,13 +10,11 @@ import org.apache.spark.api.java.function.*;
 import org.apache.spark.api.java.function.Function0;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.Function3;
-import org.apache.spark.streaming.State;
-import org.apache.spark.streaming.StateSpec;
+import org.apache.spark.streaming.*;
 import org.apache.spark.streaming.api.java.JavaMapWithStateDStream;
 import org.apache.spark.streaming.dstream.DStream;
 import org.apache.spark.streaming.kinesis.KinesisUtils;
 import org.apache.spark.storage.StorageLevel;
-import org.apache.spark.streaming.Duration;
 import org.apache.spark.streaming.api.java.JavaDStream;
 import org.apache.spark.streaming.api.java.JavaPairDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
@@ -40,11 +36,12 @@ public class JavaStatefulNetworkWordCount{
 
     private static final String KINESISAPPNAME ="sparkKinesisIntegration";
     private static final String STREAMNAME = "integration-test";
-    private static final String ENDPOINT="https://kinesis.us-west-2.amazonaws.com";
-    private static final String CHECKPOINT_DIR="../docker/spark/data/output/checkpoint";
+    private static final String ENDPOINT="https://kinesis. .amazonaws.com";
     private static final int CHECKPOINT_INTERVAL_MILLIS = 4000;
-    private static final String KINESIS_REGION="us-west-2";
+    private static final String KINESIS_REGION="";
 
+    //private static final String CHECKPOINT_DIR="s3://ceabs-bigdata-homolog/spark/checkpoint";
+    private static final String CHECKPOINT_DIR="../docker/spark/data/output/checkpoint";
 
     // Spark Streaming batch interval
     private static Duration batchInterval = new Duration(CHECKPOINT_INTERVAL_MILLIS);
@@ -55,16 +52,23 @@ public class JavaStatefulNetworkWordCount{
 
         // Setup the Spark config and StreamingContext
         SparkConf sparkConfig = new SparkConf()
-                .setMaster("local[2]")
-                .set("spark.sql.warehouse.dir","/home/altieris/spark")
+                //.setMaster("local[2]")
+                //.set("spark.sql.warehouse.dir","/home/altieris/spark")
+                //.set(ConfigurationOptions.ES_NODES, "172.20.128.102")
+                //.set(ConfigurationOptions.ES_PORT, "9200")
+                .setMaster("yarn")
+                .set("spark.sql.warehouse.dir","/spark/warehouse")
+                .set(ConfigurationOptions.ES_NODES, "https://search-ceabs-es-dev-stream-hgi7oas5jyanc374lmbisqdl3y. .es.amazonaws.com")
+                .set(ConfigurationOptions.ES_PORT, "443")
+
                 .set("spark.streaming.stopGracefullyOnShutdown","true")
                 .set("spark.cleaner.referenceTracking.cleanCheckpoints","true")
-                .set("es.index.auto.create", "true")
-                .set(ConfigurationOptions.ES_NODES, "172.20.128.102")
-                .set(ConfigurationOptions.ES_PORT, "9200")
-                .set("es.batch.write.retry.count", "-1")
-                .set("es.write.operation", "upsert")
-                .set("es.mapping.id", "tripId")
+                .set(ConfigurationOptions.ES_INDEX_AUTO_CREATE, "true")
+                .set(ConfigurationOptions.ES_NET_USE_SSL,"true")
+                .set(ConfigurationOptions.ES_NODES_WAN_ONLY,"true")
+                .set(ConfigurationOptions.ES_BATCH_WRITE_RETRY_COUNT, "-1")
+                .set(ConfigurationOptions.ES_WRITE_OPERATION, "upsert")
+                .set(ConfigurationOptions.ES_MAPPING_ID, "tripId")
                 .setAppName("JavaKinesisWordCountASL");
 
         JavaStreamingContext jssc = new JavaStreamingContext(sparkConfig, batchInterval);
@@ -109,8 +113,10 @@ public class JavaStatefulNetworkWordCount{
         // DStream made of get cumulative counts that get updated in every batch
         final JavaMapWithStateDStream<String, List<Event>, TripInfo, TripUpdate> stateDstream =
                 events.mapWithState(StateSpec.function(new Function3<String, Optional<List<Event>>, State<TripInfo>, TripUpdate>() {
+
                     @Override
                     public TripUpdate call(String deviceSerialNumber, Optional<List<Event>> optional, State<TripInfo> state) throws Exception {
+
 
                         if (state.isTimingOut()) {
 
@@ -120,10 +126,8 @@ public class JavaStatefulNetworkWordCount{
                             finalUpdate.setDeviceSerialNumber(deviceSerialNumber);
                             finalUpdate.setDurationMs(state.get().calculateDuration()); // TripDuration
                             finalUpdate.setNumEvents(state.get().getNumEvents());
-
                             finalUpdate.setSpeedMax(state.get().getSpeedMax());
                             finalUpdate.setSpeedMin(state.get().getSpeedMin());
-
                             finalUpdate.setSpeedAvg(state.get().calculateSpeedAvg());
                             finalUpdate.setStartTrip(state.get().getEventTripStart());
                             finalUpdate.setEndTrip(state.get().getEventTripEnd());
@@ -174,6 +178,7 @@ public class JavaStatefulNetworkWordCount{
                                 tripStaging.setEventTripStart(new Timestamp(Math.min(oldTrip.getEventTripStart().getTime(), minEventTime))); // Trip Start date
                                 tripStaging.setEventTripEnd(new Timestamp(Math.max(oldTrip.getEventTripEnd().getTime(), maxEventTime)));     // Trip End date
                             }else{
+
                                 tripStaging.setTripId(String.valueOf(UUID.randomUUID()));
                                 tripStaging.setNumEvents(numNewEvents);
                                 tripStaging.setSumSpeed(speedSum);
@@ -197,9 +202,10 @@ public class JavaStatefulNetworkWordCount{
                             tripUpdate.setExpired(false);
                             tripUpdate.setTripStatus("RUNNING");
                             return tripUpdate;
+
                         }
                     }
-                }).timeout(Duration.apply(10000))); // put timout here
+                })); // put timout here
 
 
        final DStream<TripUpdate> tripFiltered = stateDstream.filter(tripUpdate -> tripUpdate.isExpired()).dstream();
@@ -254,9 +260,17 @@ public class JavaStatefulNetworkWordCount{
         return client;
     }
 
+    private static String resolveHostToIpIfNecessary(String host){
+        try {
+            return java.net.InetAddress.getByName(host).getHostAddress();
+        }catch (Exception e){
+            System.out.println("resolveHostToIpIfNecessary() " + e.getMessage()); return host;
+        }
+    }
 
 
     public static  void main(String[] args) throws Exception {
+
         Function0<JavaStreamingContext> createContextFunc =
                 () -> createContext(CHECKPOINT_DIR);
 

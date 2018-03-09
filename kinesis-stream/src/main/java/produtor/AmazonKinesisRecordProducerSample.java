@@ -101,7 +101,7 @@ public class AmazonKinesisRecordProducerSample {
             putRecordRequest.setStreamName(myStreamName);
 
 
-            putRecordRequest.setData(ByteBuffer.wrap(String.format("5;2018-02-27 00:15:00.0;60").getBytes(UTF_8)));
+            putRecordRequest.setData(ByteBuffer.wrap(String.format("6;2018-02-27 00:15:00.0;20").getBytes(UTF_8)));
             putRecordRequest.setPartitionKey(String.format("partitionKey-%d", createTime));
 
             PutRecordResult putRecordResult = kinesis.putRecord(putRecordRequest);
